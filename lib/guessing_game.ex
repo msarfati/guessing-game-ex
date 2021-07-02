@@ -83,6 +83,9 @@ defmodule GuessingGame.Session do
     # Display running score
     IO.puts("Running score: #{inspect GuessingGame.LeaderBoard.score}")
 
+    # End processes of winners
+    Enum.filter(players, fn player -> player.mode == :winner end)
+      |> Enum.each(fn player -> GuessingGame.Player.stop(player.player) end)
     # Filter out winners
     Enum.filter(players, fn player -> player.mode == :playing end)
   end
@@ -90,11 +93,11 @@ defmodule GuessingGame.Session do
   def gameover do
     IO.puts("~~!Game over!~~")
     IO.puts("Final score: #{inspect GuessingGame.LeaderBoard.score}")
-    IO.puts("The answer is: #{GuessingGame.answer}")
     total_rounds = GuessingGame.LeaderBoard.score
                    |> Enum.map(fn {_pid, :winner, attempt} -> attempt end)
                    |> Enum.max()
-    IO.puts("Total rounds: #{total_rounds}")
+    number_of_players = GuessingGame.LeaderBoard.score |> length()
+    %{answer: GuessingGame.answer, total_rounds: total_rounds, number_of_players: number_of_players}
   end
 end
 
@@ -107,6 +110,10 @@ defmodule GuessingGame.Player do
 
   def new do
     GenServer.start_link(__MODULE__, :ok)
+  end
+
+  def stop(pid) do
+    GenServer.cast(pid, :stop)
   end
 
   def guess(pid, number \\ Enum.random(1..100)) do
@@ -147,6 +154,10 @@ defmodule GuessingGame.Player do
       true ->
         {:reply, %{mode: :winner, player: player, stats: stats}, stats}
       end
+  end
+
+  def handle_cast(:stop, stats) do
+    {:stop, :normal, stats}
   end
 
   defp update_stats(stats, guess) do
