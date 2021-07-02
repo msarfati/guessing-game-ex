@@ -55,30 +55,47 @@ defmodule GuessingGame.Session do
     players |> Enum.each(fn player -> GuessingGame.LeaderBoard.register_player(player) end)
 
     # First round
-    players = Enum.map(players, fn player -> GuessingGame.Player.guess(player) end)
-    players
-#    IO.puts(players)
-#    new_round(players)
+    players = Enum.map(players, fn player -> GuessingGame.Player.next_turn(player) end)
+    players = tally_score(players)
+
+    # Start main game loop
+    new_round(players)
   end
 
   def new_round(players) do
     if length(players) > 0 do
-      Enum.each(players, fn player -> GuessingGame.Player.add_player end)
-#      players_score = Enum.each(players, fn player -> GuessingGame.Player end)
-#      players = tally_score(players_score)
-#      new_round(players)
+      players_score = Enum.map(players, fn player -> GuessingGame.Player.next_turn(player.player, player) end)
+      tally_score(players_score) |> new_round()
+    else
+      gameover()
     end
-#    IO.puts(GuessingGame.LeaderBoard.score)
-#    IO.puts("Game over")
   end
 
-#  @doc """
-#  Tallys score and removes players who have won from the list of active players
-#  """
-#  def tally_score(players_score) do
-#    players_score |> Enum.each(fn {player, } -> GuessingGame.LeaderBoard.add_player() end)
-#    players |> Enum.filter
-#  end
+  @doc """
+  Tallys score and removes players who have won from the list of active players
+  """
+  def tally_score(players) do
+    # Update leaderboard
+    Enum.each(players,
+      fn player ->
+        GuessingGame.LeaderBoard.add_player(player.player, player.mode, player.stats.attempts) end)
+
+    # Display running score
+    IO.puts("Running score: #{inspect GuessingGame.LeaderBoard.score}")
+
+    # Filter out winners
+    Enum.filter(players, fn player -> player.mode == :playing end)
+  end
+
+  def gameover do
+    IO.puts("~~!Game over!~~")
+    IO.puts("Final score: #{inspect GuessingGame.LeaderBoard.score}")
+    IO.puts("The answer is: #{GuessingGame.answer}")
+    total_rounds = GuessingGame.LeaderBoard.score
+                   |> Enum.map(fn {_pid, :winner, attempt} -> attempt end)
+                   |> Enum.max()
+    IO.puts("Total rounds: #{total_rounds}")
+  end
 end
 
 defmodule GuessingGame.Player do

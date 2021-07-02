@@ -2,7 +2,14 @@ defmodule GuessingGameTest do
   use ExUnit.Case
   doctest GuessingGame
 
-  test "greets the world" do
-    assert GuessingGame.hello() == :world
+  test "GuessingGame proper functionality" do
+
+  end
+
+  test "Basic GuessingGame.Player functionality" do
+    {:ok, pid} = GuessingGame.Player.new
+    assert Process.alive?(result.player)
+    result = GuessingGame.Player.next_turn(pid)
+    assert Process.alive?(result.player)
   end
 end
